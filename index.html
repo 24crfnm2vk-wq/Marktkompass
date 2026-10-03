@@ -1,17 +1,27 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Marktkompass V25.1.0</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Marktkompass V25.1.0</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <h1>Marktkompass</h1>
-    <div id="app">Lade aktuellen Marktstatus …</div>
-    <p class="note">Informations- und Beobachtungsinstrument – kein Kauf- oder Verkaufssignal.</p>
-  </main>
-  <script src="app.js"></script>
+    <main class="container">
+        <h1>Marktkompass</h1>
+        <div id="app">Lade aktuellen Marktstatus …</div>
+
+        <section class="card">
+            <button id="acwi-update-button" type="button">Neue ACWI-Daten prüfen</button>
+            <div id="acwi-update-status" class="note" aria-live="polite">
+                Neue ACWI-Daten werden nur nach deiner ausdrücklichen Bestätigung freigegeben.
+            </div>
+        </section>
+
+        <p class="note">Informations- und Beobachtungsinstrument – kein Kauf- oder Verkaufssignal.</p>
+    </main>
+
+    <script src="app.js"></script>
+    <script type="module" src="acwi-update.js"></script>
 </body>
 </html>
