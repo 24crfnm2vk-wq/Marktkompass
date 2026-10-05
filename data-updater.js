@@ -2,17 +2,17 @@
  * ==========================================
  * Marktkompass
  * Daten-Updater
- * Version 2.0
+ * Version 3.0 – Cloudflare Bridge
  * ==========================================
  *
  * Aufgabe:
- * - lädt die aktuelle ACWI-Datei aus GitHub
+ * - lädt den aktuellen ACWI-Kandidaten über den sicheren Cloudflare-Worker
  * - erkennt neue ACWI-Handelstage
- * - fragt vor der Übernahme nach
- * - speichert bestätigte neue Daten lokal
- * - verbindet Basisdaten + Erweiterungsdaten
+ * - fragt vor der Übernahme ausdrücklich nach
+ * - übermittelt bestätigte Daten an den privaten Prüfstand
+ * - speichert bestätigte Daten lokal für die laufende Sitzung/Seite
  *
- * Die ursprüngliche CSV-Datei wird NICHT verändert.
+ * Die ursprüngliche ACWI-Masterdatei wird NICHT verändert.
  */
 
 export class DataUpdater {
@@ -51,28 +51,38 @@ export class DataUpdater {
                 cache: "no-store"
             });
 
+
         if (!response.ok) {
+
             throw new Error(
-                `Aktuelle ACWI-Kandidaten konnten nicht geladen werden (${response.status}).`
+                `ACWI-Kandidat konnte nicht geladen werden (${response.status}).`
             );
         }
+
 
         const payload =
             await response.json();
 
-        if (!payload || payload.version !== "acwi-candidate-v1" || !Array.isArray(payload.data)) {
+
+        if (
+            !payload ||
+            payload.version !== "acwi-candidate-v1" ||
+            !Array.isArray(payload.data)
+        ) {
+
             throw new Error(
-                "Unerwartetes Format der ACWI-Kandidaten vom Server."
+                "Ungültiges Format des ACWI-Kandidaten."
             );
         }
 
+
         return payload.data
             .map(row => ({
-                date: String(row?.date ?? "").trim(),
-                close: Number(row?.close)
+                date: row.date,
+                close: Number(row.close)
             }))
             .filter(row =>
-                /^\d{4}-\d{2}-\d{2}$/.test(row.date) &&
+                Boolean(row.date) &&
                 Number.isFinite(row.close)
             );
     }
@@ -81,31 +91,49 @@ export class DataUpdater {
     async approveWithBridge(newData) {
 
         const response =
-            await fetch(`${this.bridgeBaseUrl}/approve`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    version: "acwi-approval-v1",
-                    data: newData
-                })
-            });
+            await fetch(
+                `${this.bridgeBaseUrl}/approve`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        version:
+                            "acwi-approval-v1",
+
+                        data:
+                            newData
+                    })
+                }
+            );
+
 
         const payload =
-            await response.json().catch(() => null);
+            await response
+                .json()
+                .catch(() => null);
 
-        if (!response.ok || !payload?.accepted) {
-            const message =
+
+        if (
+            !response.ok ||
+            !payload ||
+            payload.accepted !== true
+        ) {
+
+            throw new Error(
                 payload?.error ||
-                payload?.message ||
-                `Serverfreigabe fehlgeschlagen (${response.status}).`;
-
-            throw new Error(message);
+                "Die ACWI-Freigabe konnte nicht an den privaten Prüfstand übermittelt werden."
+            );
         }
+
 
         return payload;
     }
+
 
     loadStoredUpdates() {
 
@@ -438,6 +466,7 @@ export class DataUpdater {
         await this.approveWithBridge(
             newData
         );
+
 
         const updatedData =
             this.acceptNewData(
