@@ -27,14 +27,14 @@ async function loadStatus(){
         <div><b>Version:</b> ${s.version}</div>
         <div><b>Datenstand:</b> ${s.date}</div>
         <div class="traffic"><span class="dot ${cls}"></span>Ampel: ${s.trafficLight}</div>
-        <div class="row"><span class="label">Marktstatus:</span> ${s.marketStatus}</div>
+        <div class="row"><span class="label">Marktstatus:</span> ${s.state}</div>
       </div>
       <div class="card">
-        <div class="row"><span class="label">MSCI ACWI:</span> ${s.acwi}</div>
-        <div class="row"><span class="label">SMA200:</span> ${s.sma200}</div>
-        <div class="row"><span class="label">Abstand zur SMA200:</span> ${s.distanceToSma200}</div>
-        <div class="row"><span class="label">VIX:</span> ${s.vix}</div>
-        <div class="row"><span class="label">VIX Tagesveränderung:</span> ${s.vixDailyChange}</div>
+        <div class="row"><span class="label">MSCI ACWI:</span> ${Number(s.acwi).toFixed(2)}</div>
+        <div class="row"><span class="label">SMA200:</span> ${Number(s.sma200).toFixed(2)}</div>
+        <div class="row"><span class="label">Abstand zur SMA200:</span> ${Number(s.distance).toFixed(2)}</div>
+        <div class="row"><span class="label">VIX:</span> ${Number(s.vix).toFixed(2)}</div>
+        <div class="row"><span class="label">VIX Tagesveränderung:</span> ${Number(s.vixChange).toFixed(2)}</div>
       </div>
       ${reference}
     `;
