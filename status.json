@@ -1,14 +1,11 @@
 {
   "version": "V25.1.0",
-  "date": "2026-09-29",
+  "date": "2026-10-01",
   "trafficLight": "GRÜN",
-  "marketStatus": "NORMAL",
-  "acwi": "1135.86",
-  "sma200": "1079.97",
-  "distanceToSma200": "+5.17 %",
-  "vix": "16.04",
-  "vixDailyChange": "-0.19 %",
-  "historicalReference": {
-    "found": false
-  }
+  "state": "NORMAL",
+  "acwi": 1133.261068,
+  "sma200": 1081.1930185200001,
+  "distance": 4.815795939125992,
+  "vix": 16.39,
+  "vixChange": 0.30599755201958817
 }
