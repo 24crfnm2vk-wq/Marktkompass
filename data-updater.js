@@ -2,15 +2,16 @@
  * ==========================================
  * Marktkompass
  * Daten-Updater
- * Version 3.0 – Cloudflare Bridge
+ * V3.1 – geräteübergreifende Synchronisation
  * ==========================================
  *
  * Aufgabe:
- * - lädt den aktuellen ACWI-Kandidaten über den sicheren Cloudflare-Worker
- * - erkennt neue ACWI-Handelstage
- * - fragt vor der Übernahme ausdrücklich nach
- * - übermittelt bestätigte Daten an den privaten Prüfstand
- * - speichert bestätigte Daten lokal für die laufende Sitzung/Seite
+ * - lädt aktuelle ACWI-Kandidatendaten über die Cloudflare-Bridge
+ * - verwendet status.json als serverseitigen Synchronisationsstand
+ * - erkennt dadurch auf PC und iPhone denselben Freigabestand
+ * - fragt vor einer neuen Übernahme ausdrücklich nach
+ * - speichert bestätigte neue Daten lokal
+ * - verbindet Basisdaten + Erweiterungsdaten
  *
  * Die ursprüngliche ACWI-Masterdatei wird NICHT verändert.
  */
@@ -22,8 +23,11 @@ export class DataUpdater {
         this.storageKey =
             "marktkompass.acwi.updates.v1";
 
-        this.bridgeBaseUrl =
-            "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
+        this.latestFile =
+            "https://bitter-mountain-11f4.24crfnm2vk.workers.dev/candidate";
+
+        this.statusFile =
+            "./status.json";
     }
 
 
@@ -44,7 +48,7 @@ export class DataUpdater {
     async fetchACWIData() {
 
         const url =
-            `${this.bridgeBaseUrl}/candidate?t=${Date.now()}`;
+            `${this.latestFile}?t=${Date.now()}`;
 
         const response =
             await fetch(url, {
@@ -55,7 +59,7 @@ export class DataUpdater {
         if (!response.ok) {
 
             throw new Error(
-                `ACWI-Kandidat konnte nicht geladen werden (${response.status}).`
+                `Aktuelle ACWI-Kandidatendaten konnten nicht geladen werden (${response.status}).`
             );
         }
 
@@ -71,67 +75,58 @@ export class DataUpdater {
         ) {
 
             throw new Error(
-                "Ungültiges Format des ACWI-Kandidaten."
+                "Unerwartetes Format der ACWI-Kandidatendaten."
             );
         }
 
 
         return payload.data
             .map(row => ({
-                date: row.date,
+                date: String(row.date),
                 close: Number(row.close)
             }))
             .filter(row =>
-                Boolean(row.date) &&
+                row.date &&
                 Number.isFinite(row.close)
             );
     }
 
 
-    async approveWithBridge(newData) {
+    async fetchPublishedStatus() {
+
+        const url =
+            `${this.statusFile}?t=${Date.now()}`;
 
         const response =
-            await fetch(
-                `${this.bridgeBaseUrl}/approve`,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        version:
-                            "acwi-approval-v1",
-
-                        data:
-                            newData
-                    })
-                }
-            );
+            await fetch(url, {
+                cache: "no-store"
+            });
 
 
-        const payload =
-            await response
-                .json()
-                .catch(() => null);
-
-
-        if (
-            !response.ok ||
-            !payload ||
-            payload.accepted !== true
-        ) {
+        if (!response.ok) {
 
             throw new Error(
-                payload?.error ||
-                "Die ACWI-Freigabe konnte nicht an den privaten Prüfstand übermittelt werden."
+                `Aktueller veröffentlichter Marktstand konnte nicht geladen werden (${response.status}).`
             );
         }
 
 
-        return payload;
+        const status =
+            await response.json();
+
+
+        if (
+            !status ||
+            typeof status.date !== "string"
+        ) {
+
+            throw new Error(
+                "Die veröffentlichte status.json enthält keinen gültigen Datenstand."
+            );
+        }
+
+
+        return status;
     }
 
 
@@ -271,15 +266,28 @@ export class DataUpdater {
     }
 
 
-    findNewData(existingData, externalData) {
+    findNewData(existingData, externalData, publishedDate = null) {
 
-        const lastDate =
+        const localLastDate =
             this.getLastDate(
                 existingData
             );
 
+        /*
+         * Der serverseitig veröffentlichte Datenstand ist
+         * die geräteübergreifende Freigabe-Referenz.
+         *
+         * Dadurch können Firefox und Safari nicht mehr
+         * unterschiedliche lokale Freigabestände melden.
+         */
+        const effectiveLastDate =
+            [localLastDate, publishedDate]
+                .filter(Boolean)
+                .sort()
+                .at(-1);
 
-        if (!lastDate) {
+
+        if (!effectiveLastDate) {
 
             return externalData || [];
         }
@@ -293,7 +301,7 @@ export class DataUpdater {
                 }
 
 
-                return row.date > lastDate;
+                return row.date > effectiveLastDate;
             })
             .map(row => ({
 
@@ -371,6 +379,53 @@ export class DataUpdater {
     }
 
 
+    async approveWithBridge(newData) {
+
+        const response =
+            await fetch(
+                "https://bitter-mountain-11f4.24crfnm2vk.workers.dev/approve",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            version:
+                                "acwi-approval-v1",
+
+                            data:
+                                newData
+                        })
+                }
+            );
+
+
+        const payload =
+            await response
+                .json()
+                .catch(() => null);
+
+
+        if (
+            !response.ok ||
+            !payload?.accepted
+        ) {
+
+            throw new Error(
+                payload?.error ||
+                "Die ACWI-Freigabe konnte serverseitig nicht gespeichert werden."
+            );
+        }
+
+
+        return payload;
+    }
+
+
     async askForAcceptance(newData) {
 
         if (
@@ -420,10 +475,23 @@ export class DataUpdater {
         }
 
 
+        /*
+         * status.json ist die serverseitige,
+         * geräteübergreifende Referenz.
+         *
+         * Fällt der Abruf aus, wird bewusst NICHT
+         * stillschweigend auf einen unsicheren Zustand
+         * zurückgefallen.
+         */
+        const publishedStatus =
+            await this.fetchPublishedStatus();
+
+
         const newData =
             this.findNewData(
                 currentData,
-                externalData
+                externalData,
+                publishedStatus.date
             );
 
 
@@ -435,7 +503,10 @@ export class DataUpdater {
 
                 newData: [],
 
-                data: currentData
+                data: currentData,
+
+                publishedDate:
+                    publishedStatus.date
 
             };
         }
@@ -457,12 +528,20 @@ export class DataUpdater {
 
                 newData,
 
-                data: currentData
+                data: currentData,
+
+                publishedDate:
+                    publishedStatus.date
 
             };
         }
 
 
+        /*
+         * Serverseitige Freigabe zuerst.
+         * Erst bei erfolgreicher Freigabe wird
+         * lokal gespeichert.
+         */
         await this.approveWithBridge(
             newData
         );
@@ -481,7 +560,10 @@ export class DataUpdater {
 
             newData,
 
-            data: updatedData
+            data: updatedData,
+
+            publishedDate:
+                publishedStatus.date
 
         };
     }
