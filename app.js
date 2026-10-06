@@ -43,3 +43,7 @@ async function loadStatus(){
   }
 }
 loadStatus();
+
+// Automatische Aktualisierung der öffentlichen Anzeige.
+// Prüfung der veröffentlichten status.json alle 5 Sekunden.
+setInterval(loadStatus, 5000);
