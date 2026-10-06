@@ -22,6 +22,12 @@ async function loadStatus(){
       </div>`;
     }
 
+    const distance = Number(s.distance);
+    const distanceText = distance > 0
+      ? `+${distance.toFixed(2)} %`
+      : `${distance.toFixed(2)} %`;
+    const distanceStyle = distance < 0 ? ' style="color:red"' : '';
+
     root.innerHTML=`
       <div class="card">
         <div><b>Version:</b> ${s.version}</div>
@@ -30,11 +36,11 @@ async function loadStatus(){
         <div class="row"><span class="label">Marktstatus:</span> ${s.state}</div>
       </div>
       <div class="card">
-        <div class="row"><span class="label">MSCI ACWI:</span> ${Number(s.acwi).toFixed(2)}</div>
-        <div class="row"><span class="label">SMA200:</span> ${Number(s.sma200).toFixed(2)}</div>
-        <div class="row"><span class="label">Abstand zur SMA200:</span> ${Number(s.distance).toFixed(2)}</div>
-        <div class="row"><span class="label">VIX:</span> ${Number(s.vix).toFixed(2)}</div>
-        <div class="row"><span class="label">VIX Tagesveränderung:</span> ${Number(s.vixChange).toFixed(2)}</div>
+        <div class="row"><span class="label">MSCI ACWI:</span> ${Number(s.acwi).toFixed(2)} Punkte</div>
+        <div class="row"><span class="label">SMA200:</span> ${Number(s.sma200).toFixed(2)} Punkte</div>
+        <div class="row"><span class="label">Abstand zur SMA200:</span> <span${distanceStyle}>${distanceText}</span></div>
+        <div class="row"><span class="label">VIX:</span> ${Number(s.vix).toFixed(2)} Punkte</div>
+        <div class="row"><span class="label">VIX Tagesveränderung:</span> ${Number(s.vixChange).toFixed(2)} %</div>
       </div>
       ${reference}
     `;
