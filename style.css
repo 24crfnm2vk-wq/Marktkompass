@@ -8,3 +8,12 @@ h1{margin-top:0}
 .row{margin:8px 0}.label{font-weight:700}
 .note{font-size:.9rem;color:#666;margin-top:22px}
 .error{color:#b00020}
+
+*{box-sizing:border-box}
+body{line-height:1.45}
+.phase-banner{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #e6e6e6}
+.phase-icon{width:44px;height:44px;min-width:44px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff}
+.phase-icon svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.phase-green{background:#279653}.phase-yellow{background:#e6b422;color:#242424}.phase-blue{background:#2878b5}.phase-red{background:#c83b3b}.phase-gray{background:#888}
+.phase-title{font-weight:700;margin:0 0 3px}.phase-description{margin:0;color:#333}.phase-label{font-size:.83rem;font-weight:700;letter-spacing:.03em;color:#666;margin-bottom:3px}
+@media(max-width:600px){.container{margin:0;padding:16px;border-radius:0}.phase-banner{gap:10px}.phase-icon{width:40px;height:40px;min-width:40px}}
