@@ -1,22 +1,22 @@
 {
   "version": "V25.1.0",
-  "date": "2026-11-05",
-  "trafficLight": "ROT",
-  "state": "STRESS",
-  "acwi": 1092.913301,
-  "sma200": 1094.7538507699999,
-  "distance": -0.16812453034125127,
-  "vix": 28.18,
-  "vixChange": 69.65683323299217,
+  "date": "2026-11-06",
+  "trafficLight": "GELB",
+  "state": "STABILISIERUNG",
+  "acwi": 1085.476169,
+  "sma200": 1095.0010816149997,
+  "distance": -0.8698541741120089,
+  "vix": 25.64,
+  "vixChange": -9.013484740951027,
   "historicalReference": {
     "found": true,
-    "date": "2025-04-03",
-    "stressStart": "2025-04-03",
-    "stressLevel": 0,
-    "acwiChangeSinceStart": 0,
-    "distanceToSma200": -3.8387810085522065,
-    "vix": 30.02,
-    "startDate": "2025-04-03",
-    "endDate": "2025-05-02"
+    "date": "2025-03-11",
+    "stressStart": "2025-03-10",
+    "stressLevel": -3.374012921751607,
+    "acwiChangeSinceStart": -0.7313294825453667,
+    "distanceToSma200": -1.131065206803851,
+    "vix": 26.92,
+    "startDate": "2025-03-10",
+    "endDate": "2025-03-17"
   }
 }
