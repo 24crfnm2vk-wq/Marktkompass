@@ -53,7 +53,7 @@ async function loadStatus(){
         </div>
         <div><b>Version:</b> ${s.version||'–'}</div>
         <div><b>Datenstand:</b> ${s.date||'–'}</div>
-        ${s.isIntraday?'<div class="row"><b>Vorläufig – Intraday</b><br>Abrufzeit: '+(s.intradayTimestamp?new Date(s.intradayTimestamp).toLocaleString('de-DE'):'–')+'</div>':''}
+        ${s.isIntraday?'<div class="row"><b>Vorläufig – Intraday</b><br>Zeitstempel Anbieter: '+(s.intradayTimestamp?new Date(s.intradayTimestamp).toLocaleString('de-DE'):'–')+'</div>':''}
       </div>
       <div class="card">
         <div class="row"><span class="label">MSCI ACWI:</span> ${formatNumber(s.acwi)} Punkte</div>
