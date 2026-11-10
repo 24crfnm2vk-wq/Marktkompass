@@ -2,18 +2,9 @@ const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
 const button = document.getElementById("intraday-vix-check-button");
 const status = document.getElementById("intraday-vix-status");
 
-function formatTimestamp(value) {
-    const date = new Date(value);
-    return Number.isFinite(date.getTime())
-        ? date.toLocaleString("de-DE")
-        : "Zeitstempel nicht verfügbar";
-}
-
 async function checkIntradayVix() {
-    if (!button || !status) return;
-
-    button.disabled = true;
-    status.textContent = "Prüfe, ob ein neuer Intraday-VIX-Wert verfügbar ist …";
+    if (button) button.disabled = true;
+    if (status) status.textContent = "Prüfe automatisch, ob ein neuer Intraday-VIX-Wert vorliegt …";
 
     try {
         const response = await fetch(
@@ -35,23 +26,14 @@ async function checkIntradayVix() {
             !candidate.timestamp ||
             !candidate.id
         ) {
-            status.textContent = candidate?.message ||
-                "Derzeit liegt kein neuer Intraday-VIX-Wert zur Bestätigung vor.";
+            if (status) {
+                status.textContent = candidate?.message ||
+                    "Derzeit liegt kein neuer Intraday-VIX-Wert vor. Der bisherige Marktstatus bleibt unverändert.";
+            }
             return;
         }
 
-        const timestamp = formatTimestamp(candidate.timestamp);
-        const message =
-            "Ein neuer Intraday-VIX-Wert wurde bereitgestellt.\n\n" +
-            `VIX-Wert: ${Number(candidate.vix).toFixed(2)} Punkte\n` +
-            `Zeitstempel des Datenanbieters: ${timestamp}\n\n` +
-            "Soll dieser Wert übernommen und eine vorläufige Neuberechnung gestartet werden?";
-
-        if (!window.confirm(message)) {
-            status.textContent = "Intraday-VIX nicht übernommen. Der bisherige Marktstatus bleibt unverändert.";
-            return;
-        }
-
+        // Der Kandidat wird nach erfolgreicher technischer Prüfung automatisch gespeichert.
         const approval = await fetch(`${WORKER}/intraday-approve`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -66,19 +48,23 @@ async function checkIntradayVix() {
         const result = await approval.json().catch(() => null);
 
         if (!approval.ok || result?.accepted !== true) {
-            throw new Error(result?.error || "Der Intraday-VIX-Wert konnte nicht bestätigt werden.");
+            throw new Error(result?.error || "Der Intraday-VIX-Wert konnte nicht automatisch gespeichert werden.");
         }
 
-        status.textContent =
-            `Intraday-VIX ${Number(candidate.vix).toFixed(2)} bestätigt. ` +
-            "Die vorläufige Berechnung wurde angestoßen.";
+        if (status) {
+            status.textContent = result.duplicate
+                ? "Dieser Intraday-VIX-Messpunkt ist bereits gespeichert."
+                : `Intraday-VIX ${Number(candidate.vix).toFixed(2)} Punkte automatisch gespeichert. Vorläufige V25.1-Berechnung angestoßen.`;
+        }
     } catch (error) {
         console.error("Intraday-VIX:", error);
-        status.textContent =
-            "Intraday-VIX konnte nicht geprüft oder übernommen werden. " +
-            "Der bisherige Marktstatus bleibt unverändert.";
+        if (status) {
+            status.textContent =
+                "Intraday-VIX konnte nicht geprüft oder gespeichert werden. " +
+                "Der bisherige Marktstatus bleibt unverändert.";
+        }
     } finally {
-        button.disabled = false;
+        if (button) button.disabled = false;
     }
 }
 
@@ -86,5 +72,5 @@ if (button) {
     button.addEventListener("click", checkIntradayVix);
 }
 
-// Automatische Prüfung beim Laden der Marktkompass-Seite.
+// Automatische Prüfung beim Laden; erneute Prüfung über den vorhandenen Button möglich.
 checkIntradayVix();
