@@ -20,8 +20,9 @@ async function checkAndUpdateAcwi() {
         const last = result.newData[result.newData.length - 1].date;
 
         if (status) {
-            status.textContent =
-                `ACWI-Daten automatisch übernommen: ${result.newData.length} neue Handelstage (${first} bis ${last}). V25.1-Berechnung angestoßen.`;
+            status.textContent = result.approval?.duplicate
+                ? `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${last}) waren serverseitig bereits übernommen. Keine erneute Berechnung ausgelöst.`
+                : `ACWI-Daten automatisch übernommen: ${result.newData.length} neue Handelstage (${first} bis ${last}). V25.1-Berechnung angestoßen.`;
         }
     } catch (error) {
         console.error("ACWI-Aktualisierung:", error);
