@@ -80,15 +80,22 @@ export class DataUpdater {
         }
 
 
-        return payload.data
-            .map(row => ({
-                date: String(row.date),
-                close: Number(row.close)
-            }))
-            .filter(row =>
-                row.date &&
-                Number.isFinite(row.close)
-            );
+        const data = payload.data.map(row => ({
+            date: String(row?.date ?? "").trim(),
+            close: Number(row?.close)
+        }));
+
+        if (!this.validateData(data)) {
+            throw new Error("Die ACWI-Kandidaten enthalten ungültige oder unvollständige Datensätze.");
+        }
+
+        for (let i = 1; i < data.length; i++) {
+            if (data[i - 1].date >= data[i].date) {
+                throw new Error("Die ACWI-Kandidaten sind nicht streng chronologisch sortiert.");
+            }
+        }
+
+        return data;
     }
 
 
@@ -322,22 +329,25 @@ export class DataUpdater {
             return false;
         }
 
+        const seen = new Set();
 
         for (const row of data) {
-
-            if (!row.date) {
+            if (!row || !/^\\d{4}-\\d{2}-\\d{2}$/.test(row.date)) {
                 return false;
             }
 
-
-            if (!Number.isFinite(
-                Number(row.close)
-            )) {
-
+            const parsed = new Date(row.date + "T00:00:00Z");
+            if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== row.date) {
                 return false;
             }
+
+            const close = Number(row.close);
+            if (!Number.isFinite(close) || close <= 0 || seen.has(row.date)) {
+                return false;
+            }
+
+            seen.add(row.date);
         }
-
 
         return true;
     }
@@ -426,37 +436,6 @@ export class DataUpdater {
     }
 
 
-    async askForAcceptance(newData) {
-
-        if (
-            !newData ||
-            newData.length === 0
-        ) {
-
-            return false;
-        }
-
-
-        const firstDate =
-            newData[0].date;
-
-
-        const lastDate =
-            newData[newData.length - 1].date;
-
-
-        const message =
-            `${newData.length} neue ACWI-Handelstage gefunden.\n\n` +
-            `Von ${firstDate} bis ${lastDate}.\n\n` +
-            `Sollen diese Daten in den Marktkompass übernommen werden?`;
-
-
-        return window.confirm(
-            message
-        );
-    }
-
-
     async process(
         existingData,
         externalData = null
@@ -512,35 +491,9 @@ export class DataUpdater {
         }
 
 
-        const accepted =
-            await this.askForAcceptance(
-                newData
-            );
-
-
-        if (!accepted) {
-
-            return {
-
-                updated: false,
-
-                cancelled: true,
-
-                newData,
-
-                data: currentData,
-
-                publishedDate:
-                    publishedStatus.date
-
-            };
-        }
-
-
-        /*
-         * Serverseitige Freigabe zuerst.
-         * Erst bei erfolgreicher Freigabe wird
-         * lokal gespeichert.
+/*
+         * Serverseitige automatische Übernahme zuerst.
+         * Erst bei erfolgreichem Speichern wird lokal ergänzt.
          */
         await this.approveWithBridge(
             newData
@@ -555,9 +508,7 @@ export class DataUpdater {
 
 
         return {
-
             updated: true,
-
             newData,
 
             data: updatedData,
