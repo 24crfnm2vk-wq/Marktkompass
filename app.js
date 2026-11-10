@@ -21,96 +21,51 @@ const REFERENCE_STATES = new Set(['STABILISIERUNG','ERSTE VERBESSERUNG','STRUKTU
 function renderVixChart(status) {
   const regular = Array.isArray(status.regularVixHistory)
     ? status.regularVixHistory
-        .map(item => ({
-          time: Date.parse(String(item.date) + "T23:59:59Z"),
-          vix: Number(item.vix),
-          kind: "close"
-        }))
+        .map(item => ({ time: Date.parse(String(item.date) + "T23:59:59Z"), vix: Number(item.vix), kind: "close" }))
         .filter(item => Number.isFinite(item.time) && Number.isFinite(item.vix))
     : [];
-
   const intraday = Array.isArray(status.intradayVixMeasurements)
     ? status.intradayVixMeasurements
-        .map(item => ({
-          time: Date.parse(item.timestamp),
-          vix: Number(item.vix),
-          kind: "intraday"
-        }))
+        .map(item => ({ time: Date.parse(item.timestamp), vix: Number(item.vix), kind: "intraday" }))
         .filter(item => Number.isFinite(item.time) && Number.isFinite(item.vix))
     : [];
+  const points = [...regular, ...intraday].sort((a, b) => a.time - b.time);
+  if (points.length < 2) return '<div class="card"><b>VIX-Verlauf</b><p class="note">Für die Verlaufskurve liegen noch nicht genügend bestätigte Messpunkte vor.</p></div>';
 
-  const points = [...regular, ...intraday]
-    .sort((a, b) => a.time - b.time);
-
-  if (points.length < 2) {
-    return '<div class="card"><b>VIX-Verlauf</b><p class="note">Für die Verlaufskurve liegen noch nicht genügend bestätigte Messpunkte vor.</p></div>';
-  }
-
-  const width = 680;
-  const height = 250;
-  const left = 48;
-  const right = 16;
-  const top = 18;
-  const bottom = 42;
-  const plotWidth = width - left - right;
-  const plotHeight = height - top - bottom;
-
-  const minTime = points[0].time;
-  const maxTime = points[points.length - 1].time;
-  const rawMin = Math.min(...points.map(item => item.vix));
-  const rawMax = Math.max(...points.map(item => item.vix));
+  const width = 680, height = 250, left = 48, right = 16, top = 18, bottom = 42;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const minTime = points[0].time, maxTime = points[points.length - 1].time;
+  const rawMin = Math.min(...points.map(item => item.vix)), rawMax = Math.max(...points.map(item => item.vix));
   const padding = Math.max((rawMax - rawMin) * 0.12, 1);
-  const minVix = Math.max(0, rawMin - padding);
-  const maxVix = rawMax + padding;
-
+  const minVix = Math.max(0, rawMin - padding), maxVix = rawMax + padding;
   const x = time => left + (maxTime === minTime ? 0.5 : (time - minTime) / (maxTime - minTime)) * plotWidth;
   const y = value => top + (maxVix - value) / (maxVix - minVix) * plotHeight;
   const colorFor = change => change > 0.0001 ? "#c62828" : change < -0.0001 ? "#2878b5" : "#888888";
-
   const segments = points.slice(1).map((point, index) => {
     const previous = points[index];
-    return '<line x1="' + x(previous.time).toFixed(1) +
-      '" y1="' + y(previous.vix).toFixed(1) +
-      '" x2="' + x(point.time).toFixed(1) +
-      '" y2="' + y(point.vix).toFixed(1) +
-      '" stroke="' + colorFor(point.vix - previous.vix) +
-      '" stroke-width="2.4" stroke-linecap="round" />';
+    return '<line x1="' + x(previous.time).toFixed(1) + '" y1="' + y(previous.vix).toFixed(1) +
+      '" x2="' + x(point.time).toFixed(1) + '" y2="' + y(point.vix).toFixed(1) +
+      '" stroke="' + colorFor(point.vix - previous.vix) + '" stroke-width="2.4" stroke-linecap="round" />';
   }).join("");
-
   const markers = points.filter(item => item.kind === "intraday").map(item =>
-    '<circle cx="' + x(item.time).toFixed(1) +
-    '" cy="' + y(item.vix).toFixed(1) +
+    '<circle cx="' + x(item.time).toFixed(1) + '" cy="' + y(item.vix).toFixed(1) +
     '" r="4.2" fill="' + colorFor(item.vix - (points[points.indexOf(item) - 1]?.vix ?? item.vix)) +
-    '" stroke="#222" stroke-width="1.2"><title>Intraday ' +
-    item.vix.toFixed(2) + ' Punkte – ' +
-    new Date(item.time).toLocaleString("de-DE") +
-    '</title></circle>'
+    '" stroke="#222" stroke-width="1.2"><title>Intraday ' + item.vix.toFixed(2) + ' Punkte – ' +
+    new Date(item.time).toLocaleString("de-DE") + '</title></circle>'
   ).join("");
-
   const yTicks = Array.from({length: 5}, (_, index) => {
-    const value = minVix + (maxVix - minVix) * index / 4;
-    const py = y(value);
-    return '<line x1="' + left + '" y1="' + py.toFixed(1) +
-      '" x2="' + (width - right) + '" y2="' + py.toFixed(1) +
-      '" stroke="#e5e5e5" stroke-width="1" />' +
-      '<text x="' + (left - 8) + '" y="' + (py + 4).toFixed(1) +
-      '" text-anchor="end" font-size="11" fill="#555">' +
-      value.toFixed(1) + '</text>';
+    const value = minVix + (maxVix - minVix) * index / 4, py = y(value);
+    return '<line x1="' + left + '" y1="' + py.toFixed(1) + '" x2="' + (width - right) + '" y2="' + py.toFixed(1) +
+      '" stroke="#e5e5e5" stroke-width="1" /><text x="' + (left - 8) + '" y="' + (py + 4).toFixed(1) +
+      '" text-anchor="end" font-size="11" fill="#555">' + value.toFixed(1) + '</text>';
   }).join("");
-
-  const firstLabel = new Date(minTime).toLocaleDateString("de-DE");
-  const lastLabel = new Date(maxTime).toLocaleDateString("de-DE");
-
-  return '<div class="card"><b>VIX-Verlauf</b>' +
-    '<svg class="vix-chart" viewBox="0 0 ' + width + ' ' + height +
+  const firstLabel = new Date(minTime).toLocaleDateString("de-DE"), lastLabel = new Date(maxTime).toLocaleDateString("de-DE");
+  return '<div class="card"><b>VIX-Verlauf</b><svg class="vix-chart" viewBox="0 0 ' + width + ' ' + height +
     '" role="img" aria-label="VIX-Verlauf mit regulären Schlusskursen und bestätigten Intraday-Messpunkten">' +
     yTicks + segments + markers +
-    '<text x="' + left + '" y="' + (height - 12) +
-    '" font-size="11" fill="#555">' + firstLabel + '</text>' +
-    '<text x="' + (width - right) + '" y="' + (height - 12) +
-    '" text-anchor="end" font-size="11" fill="#555">' + lastLabel + '</text>' +
-    '<text x="12" y="' + (top + plotHeight / 2) +
-    '" transform="rotate(-90 12 ' + (top + plotHeight / 2) +
+    '<text x="' + left + '" y="' + (height - 12) + '" font-size="11" fill="#555">' + firstLabel + '</text>' +
+    '<text x="' + (width - right) + '" y="' + (height - 12) + '" text-anchor="end" font-size="11" fill="#555">' + lastLabel + '</text>' +
+    '<text x="12" y="' + (top + plotHeight / 2) + '" transform="rotate(-90 12 ' + (top + plotHeight / 2) +
     ')" font-size="11" fill="#555">VIX-Punkte</text></svg>' +
     '<div class="chart-legend"><span><i class="legend-close"></i>Reguläre Tages-Schlusskurse</span>' +
     '<span><i class="legend-intraday"></i>Bestätigte Intraday-Messpunkte</span></div>' +
@@ -164,6 +119,5 @@ async function loadStatus(){
   }catch(e){root.innerHTML='<div class="card error">Aktueller Marktstatus konnte nicht geladen werden.</div>';}
 }
 loadStatus();
-// Öffentliche Anzeige regelmäßig aktualisieren; Datenfreigabe bleibt in acwi-update.js.
-
-setInterval(loadStatus, 5000);
+// Die öffentliche Anzeige lädt den zuletzt veröffentlichten Stand einmal beim Seitenaufruf.
+// Es gibt keine automatische Wiederholungsabfrage und keine Berechnung durch den Seitenaufruf.
