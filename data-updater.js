@@ -275,26 +275,17 @@ export class DataUpdater {
 
     findNewData(existingData, externalData, publishedDate = null) {
 
-        const localLastDate =
-            this.getLastDate(
-                existingData
-            );
-
         /*
-         * Der serverseitig veröffentlichte Datenstand ist
-         * die geräteübergreifende Freigabe-Referenz.
+         * Ausschließlich der veröffentlichte Serverstand entscheidet,
+         * welche Kandidatentage erneut an den Worker gesendet werden.
          *
-         * Dadurch können Firefox und Safari nicht mehr
-         * unterschiedliche lokale Freigabestände melden.
+         * Lokale Ergänzungen dürfen den Wiederanlauf NICHT blockieren:
+         * Eine frühere Übernahme kann lokal bereits gespeichert sein,
+         * obwohl Berechnung oder Veröffentlichung fehlgeschlagen sind.
+         * Der Worker erkennt solche Doppelübermittlungen idempotent und
+         * stößt bei Bedarf den fehlenden Berechnungslauf erneut an.
          */
-        const effectiveLastDate =
-            [localLastDate, publishedDate]
-                .filter(Boolean)
-                .sort()
-                .at(-1);
-
-
-        if (!effectiveLastDate) {
+        if (!publishedDate) {
 
             return externalData || [];
         }
@@ -308,7 +299,7 @@ export class DataUpdater {
                 }
 
 
-                return row.date > effectiveLastDate;
+                return row.date > publishedDate;
             })
             .map(row => ({
 
