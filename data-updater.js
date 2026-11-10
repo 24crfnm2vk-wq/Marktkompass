@@ -332,7 +332,7 @@ export class DataUpdater {
         const seen = new Set();
 
         for (const row of data) {
-            if (!row || !/^\\d{4}-\\d{2}-\\d{2}$/.test(row.date)) {
+            if (!row || !/^\d{4}-\d{2}-\d{2}$/.test(row.date)) {
                 return false;
             }
 
