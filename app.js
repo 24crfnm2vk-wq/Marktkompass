@@ -53,13 +53,14 @@ async function loadStatus(){
         </div>
         <div><b>Version:</b> ${s.version||'–'}</div>
         <div><b>Datenstand:</b> ${s.date||'–'}</div>
+        ${s.isIntraday?'<div class="row"><b>Vorläufig – Intraday</b><br>Abrufzeit: '+(s.intradayTimestamp?new Date(s.intradayTimestamp).toLocaleString('de-DE'):'–')+'</div>':''}
       </div>
       <div class="card">
         <div class="row"><span class="label">MSCI ACWI:</span> ${formatNumber(s.acwi)} Punkte</div>
         <div class="row"><span class="label">SMA200:</span> ${formatNumber(s.sma200)} Punkte</div>
         <div class="row"><span class="label">Abstand zur SMA200:</span> <span${distanceStyle}>${distanceText}</span></div>
         <div class="row"><span class="label">VIX:</span> ${formatNumber(s.vix)} Punkte</div>
-        <div class="row"><span class="label">VIX Tagesveränderung:</span> ${formatPercent(s.vixChange)}</div>
+        <div class="row"><span class="label">${s.vixChangeLabel||'VIX Tagesveränderung'}:</span> ${formatPercent(s.vixChange)}</div>
       </div>${reference}`;
   }catch(e){root.innerHTML='<div class="card error">Aktueller Marktstatus konnte nicht geladen werden.</div>';}
 }
