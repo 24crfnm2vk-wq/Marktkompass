@@ -21,7 +21,9 @@ async function checkAndUpdateAcwi() {
 
         if (status) {
             status.textContent = result.approval?.duplicate
-                ? `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${last}) waren serverseitig bereits übernommen. Keine erneute Berechnung ausgelöst.`
+                ? (result.approval?.calculationStarted
+                    ? `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${last}) waren bereits gespeichert. Da die Veröffentlichung noch zurücklag, wurde die Berechnung erneut angestoßen.`
+                    : `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${last}) waren bereits gespeichert und veröffentlicht. Keine erneute Berechnung erforderlich.`)
                 : `ACWI-Daten automatisch übernommen: ${result.newData.length} neue Handelstage (${first} bis ${last}). V25.1-Berechnung angestoßen.`;
         }
     } catch (error) {
