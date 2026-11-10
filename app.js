@@ -119,5 +119,7 @@ async function loadStatus(){
   }catch(e){root.innerHTML='<div class="card error">Aktueller Marktstatus konnte nicht geladen werden.</div>';}
 }
 loadStatus();
-// Die öffentliche Anzeige lädt den zuletzt veröffentlichten Stand einmal beim Seitenaufruf.
-// Es gibt keine automatische Wiederholungsabfrage und keine Berechnung durch den Seitenaufruf.
+// Öffentliche Anzeige regelmäßig aktualisieren, damit eine abgeschlossene Neuberechnung
+// automatisch sichtbar wird. Diese Abfrage liest ausschließlich status.json;
+// sie startet weder Datenprüfung noch Neuberechnung.
+setInterval(loadStatus, 5000);
