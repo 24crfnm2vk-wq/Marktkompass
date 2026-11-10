@@ -9,8 +9,8 @@
  * - lädt aktuelle ACWI-Kandidatendaten über die Cloudflare-Bridge
  * - verwendet status.json als serverseitigen Synchronisationsstand
  * - erkennt dadurch auf PC und iPhone denselben Freigabestand
- * - fragt vor einer neuen Übernahme ausdrücklich nach
- * - speichert bestätigte neue Daten lokal
+ * - übernimmt technisch geprüfte neue Daten automatisch
+ * - speichert übernommene neue Daten lokal
  * - verbindet Basisdaten + Erweiterungsdaten
  *
  * Die ursprüngliche ACWI-Masterdatei wird NICHT verändert.
