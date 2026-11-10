@@ -18,17 +18,12 @@ if (button && status) {
                 return;
             }
 
-            if (result.cancelled) {
-                status.textContent = "Die neuen ACWI-Daten wurden nicht freigegeben.";
-                return;
-            }
-
             if (result.updated) {
                 const first = result.newData[0].date;
                 const last = result.newData[result.newData.length - 1].date;
                 status.textContent =
-                    `ACWI-Erweiterung freigegeben: ${result.newData.length} neue Handelstage ` +
-                    `(${first} bis ${last}). Die private V25.1-Berechnung wird nun angestoßen.`;
+                    `ACWI-Daten automatisch übernommen: ${result.newData.length} neue Handelstage ` +
+                    `(${first} bis ${last}). Die private V25.1-Berechnung wurde angestoßen.`;
             }
         } catch (error) {
             console.error(error);
@@ -39,4 +34,36 @@ if (button && status) {
             button.disabled = false;
         }
     });
+    
+    // Beim Laden der Marktkompass-Seite automatisch auf neue ACWI-Daten prüfen.
+    // Der vorhandene Button bleibt für eine erneute manuelle Prüfung verfügbar.
+    const runAutomaticCheck = async () => {
+        button.disabled = true;
+        status.textContent = "Prüfe automatisch auf neue ACWI-Handelstage …";
+
+        try {
+            const updater = new DataUpdater();
+            const result = await updater.process([]);
+
+            if (!result.newData || result.newData.length === 0) {
+                status.textContent = "ACWI-Daten sind aktuell. Keine neuen Handelstage vorhanden.";
+                return;
+            }
+
+            const first = result.newData[0].date;
+            const last = result.newData[result.newData.length - 1].date;
+            status.textContent =
+                `ACWI-Daten automatisch übernommen: ${result.newData.length} neue Handelstage (${first} bis ${last}). V25.1-Berechnung angestoßen.`;
+        } catch (error) {
+            console.error(error);
+            status.textContent =
+                "Automatische ACWI-Prüfung fehlgeschlagen. Der bisherige Marktstatus bleibt unverändert.";
+        } finally {
+            button.disabled = false;
+        }
+    };
+
+    // Die bereits vorhandene Schaltfläche nutzt denselben automatischen Ablauf.
+    button.addEventListener("click", runAutomaticCheck);
+    runAutomaticCheck();
 }
