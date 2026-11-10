@@ -495,9 +495,10 @@ export class DataUpdater {
          * Serverseitige automatische Übernahme zuerst.
          * Erst bei erfolgreichem Speichern wird lokal ergänzt.
          */
-        await this.approveWithBridge(
-            newData
-        );
+        const approval =
+            await this.approveWithBridge(
+                newData
+            );
 
 
         const updatedData =
@@ -512,6 +513,8 @@ export class DataUpdater {
             newData,
 
             data: updatedData,
+
+            approval,
 
             publishedDate:
                 publishedStatus.date
