@@ -389,6 +389,7 @@ export class DataUpdater {
                 "https://bitter-mountain-11f4.24crfnm2vk.workers.dev/approve",
                 {
                     method: "POST",
+                    credentials: "include",
 
                     headers: {
                         "Content-Type":
