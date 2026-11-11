@@ -13,7 +13,7 @@ async function checkAndUpdateAcwi() {
 
         if (!result.newData || result.newData.length === 0) {
             if (status) status.textContent = "ACWI-Daten sind aktuell. Keine neuen Handelstage vorhanden.";
-            return;
+            return true;
         }
 
         const first = result.newData[0].date;
@@ -26,12 +26,14 @@ async function checkAndUpdateAcwi() {
                     : `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${last}) waren bereits gespeichert und veröffentlicht. Keine erneute Berechnung erforderlich.`)
                 : `ACWI-Daten automatisch übernommen: ${result.newData.length} neue Handelstage (${first} bis ${last}). V25.1-Berechnung angestoßen.`;
         }
+        return true;
     } catch (error) {
         console.error("ACWI-Aktualisierung:", error);
         if (status) {
             status.textContent =
                 "Automatische ACWI-Prüfung fehlgeschlagen. Der bisherige Marktstatus bleibt unverändert.";
         }
+        return false;
     } finally {
         if (button) button.disabled = false;
     }
