@@ -68,7 +68,7 @@ async function startTest() {
         for (const row of acwiCandidate.data) {
             const close = Number(row?.close);
             if (
-                !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(row?.date || "")) ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(String(row?.date || "")) ||
                 !Number.isFinite(close) ||
                 close <= 0 ||
                 (previousDate !== null && row.date <= previousDate)
