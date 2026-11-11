@@ -23,7 +23,7 @@ function renderVixChart(status) {
     ? status.regularVixHistory
         .map(item => ({
           time: Date.parse(String(item.date) + "T23:59:59Z"),
-          labelDate: String(item.date),
+          labelDate: String(item.date).split("-").reverse().join("."),
           vix: Number(item.vix),
           kind: "close"
         }))
