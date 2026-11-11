@@ -34,7 +34,11 @@ function renderVixChart(status) {
         .map(item => ({
           time: Date.parse(item.timestamp),
           labelDate: Number.isFinite(Date.parse(item.timestamp))
-            ? new Date(item.timestamp).toLocaleDateString("de-DE")
+            ? new Date(item.timestamp).toLocaleDateString("de-DE", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+              })
             : "",
           vix: Number(item.vix),
           kind: "intraday"
