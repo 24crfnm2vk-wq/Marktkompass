@@ -63,6 +63,14 @@ async function checkIntradayVix() {
             throw new Error("Der Intraday-VIX-Kandidat enthält unvollständige Daten.");
         }
 
+        if (candidate.alreadyPublished === true) {
+            if (status) {
+                status.textContent =
+                    "Der aktuelle Intraday-VIX-Wert ist bereits mit dem neuesten ACWI-Datenstand veröffentlicht.";
+            }
+            return;
+        }
+
         // Der Kandidat wird nach erfolgreicher technischer Prüfung automatisch gespeichert.
         const approval = await fetch(`${WORKER}/intraday-approve`, {
             method: "POST",
@@ -83,7 +91,10 @@ async function checkIntradayVix() {
         }
 
         if (status) {
-            if (result.calculationStarted === false) {
+            if (result.calculationStarted === false && result.calculationPending === true) {
+                status.textContent =
+                    "Die Berechnung dieses Intraday-Wertes wurde bereits angestoßen. Es wird kein zweiter Berechnungslauf gestartet.";
+            } else if (result.calculationStarted === false) {
                 status.textContent = "Der aktuellste Intraday-VIX-Wert und der ACWI-Datenstand sind bereits berechnet.";
             } else if (result.duplicate) {
                 status.textContent = `Intraday-VIX ${Number(candidate.vix).toFixed(2)} Punkte mit dem neuesten ACWI-Wert vorläufig neu berechnet. Kein zusätzlicher historischer Messpunkt gespeichert.`;
