@@ -1,3 +1,5 @@
+import { getTurnstileToken } from "./turnstile-client.js";
+
 const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
 const button = document.getElementById("start-test");
 const resultBox = document.getElementById("result");
@@ -25,6 +27,15 @@ async function getJson(url, options = {}) {
         throw new Error(payload?.error || `HTTP-Fehler ${response.status}`);
     }
     return payload;
+}
+
+async function postJson(url, body, action) {
+    const turnstileToken = await getTurnstileToken(action);
+    return getJson(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, turnstileToken })
+    });
 }
 
 async function waitForStatus(matches, description) {
@@ -83,14 +94,10 @@ async function startTest() {
         let latestAcwiClose = Number(publishedStatus.acwi);
 
         if (newAcwiData.length > 0) {
-            const approval = await getJson(`${WORKER}/approve`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    version: "acwi-approval-v1",
-                    data: newAcwiData
-                })
-            });
+            const approval = await postJson(`${WORKER}/approve`, {
+                version: "acwi-approval-v1",
+                data: newAcwiData
+            }, "acwi_approve");
 
             latestAcwiDate = newAcwiData.at(-1).date;
             latestAcwiClose = Number(newAcwiData.at(-1).close);
@@ -122,14 +129,10 @@ async function startTest() {
                     `Regulärer Schlusskurs ${candidate.regularDate} vorhanden; Intraday hat keinen Vorrang.`,
                     "warn"
                 );
-                const refresh = await getJson(`${WORKER}/intraday-approve`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        version: "intraday-vix-approval-v1",
-                        mode: "regular-refresh"
-                    })
-                });
+                const refresh = await postJson(`${WORKER}/intraday-approve`, {
+                    version: "intraday-vix-approval-v1",
+                    mode: "regular-refresh"
+                }, "intraday_approve");
 
                 if (refresh.calculationStarted === true) {
                     log("Reguläre V25.1-Neuberechnung wurde angestoßen.");
@@ -184,17 +187,13 @@ async function startTest() {
         }
 
         log("3. Intraday-Kandidat wird serverseitig bestätigt.");
-        const approval = await getJson(`${WORKER}/intraday-approve`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                version: "intraday-vix-approval-v1",
-                id: candidate.id,
-                vix: Number(candidate.vix),
-                timestamp: candidate.timestamp,
-                acwiDate: candidate.acwiDate
-            })
-        });
+        const approval = await postJson(`${WORKER}/intraday-approve`, {
+            version: "intraday-vix-approval-v1",
+            id: candidate.id,
+            vix: Number(candidate.vix),
+            timestamp: candidate.timestamp,
+            acwiDate: candidate.acwiDate
+        }, "intraday_approve");
 
         if (approval.calculationStarted === true) {
             log("V25.1-Berechnung wurde angestoßen.");
