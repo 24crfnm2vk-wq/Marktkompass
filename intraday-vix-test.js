@@ -33,6 +33,7 @@ async function postJson(url, body, action) {
     const turnstileToken = await getTurnstileToken(action);
     return getJson(url, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...body, turnstileToken })
     });
