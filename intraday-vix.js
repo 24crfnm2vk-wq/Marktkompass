@@ -24,6 +24,7 @@ async function checkIntradayVix() {
             !Number.isFinite(Number(candidate.vix)) ||
             Number(candidate.vix) <= 0 ||
             !candidate.timestamp ||
+            !candidate.acwiDate ||
             !candidate.id
         ) {
             if (status) {
@@ -41,7 +42,8 @@ async function checkIntradayVix() {
                 version: "intraday-vix-approval-v1",
                 id: candidate.id,
                 vix: Number(candidate.vix),
-                timestamp: candidate.timestamp
+                timestamp: candidate.timestamp,
+                acwiDate: candidate.acwiDate
             })
         });
 
