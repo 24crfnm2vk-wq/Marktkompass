@@ -16,6 +16,8 @@
  * Die ursprüngliche ACWI-Masterdatei wird NICHT verändert.
  */
 
+import { getTurnstileToken } from "./turnstile-client.js";
+
 export class DataUpdater {
 
     constructor() {
@@ -399,7 +401,9 @@ export class DataUpdater {
                                 "acwi-approval-v1",
 
                             data:
-                                newData
+                                newData,
+                            turnstileToken:
+                                await getTurnstileToken("acwi_approve")
                         })
                 }
             );
