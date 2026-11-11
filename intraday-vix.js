@@ -34,6 +34,7 @@ async function checkIntradayVix() {
             if (candidate.regularRefreshRequired === true) {
                 const refresh = await fetch(`${WORKER}/intraday-approve`, {
                     method: "POST",
+                    credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         version: "intraday-vix-approval-v1",
@@ -77,6 +78,7 @@ async function checkIntradayVix() {
         // Der Kandidat wird nach erfolgreicher technischer Prüfung automatisch gespeichert.
         const approval = await fetch(`${WORKER}/intraday-approve`, {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 version: "intraday-vix-approval-v1",
