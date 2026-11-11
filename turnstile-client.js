@@ -35,12 +35,9 @@ async function getWidget(action) {
     const container = document.createElement("div");
     container.id = `marktkompass-turnstile-${action}`;
     container.setAttribute("aria-hidden", "true");
-    container.style.position = "fixed";
-    container.style.left = "-10000px";
-    container.style.top = "0";
-    container.style.width = "1px";
-    container.style.height = "1px";
-    document.body.appendChild(container);
+    container.className = "marktkompass-turnstile-widget";
+    const host = document.getElementById("turnstile-widgets") || document.body;
+    host.appendChild(container);
 
     widget = {
         id: null,
@@ -51,7 +48,7 @@ async function getWidget(action) {
     widget.id = turnstile.render(container, {
         sitekey: TURNSTILE_SITE_KEY,
         action,
-        size: "invisible",
+        appearance: "interaction-only",
         execution: "execute",
         callback: token => {
             if (!widget.pending) return;
