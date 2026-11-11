@@ -4,9 +4,15 @@ const status = document.getElementById("intraday-vix-status");
 
 async function checkIntradayVix() {
     if (button) button.disabled = true;
-    if (status) status.textContent = "Prüfe automatisch, ob ein neuer Intraday-VIX-Wert vorliegt …";
+    if (status) status.textContent = "Prüfe den aktuellsten verfügbaren VIX-Wert …";
 
     try {
+        // Erst die automatische ACWI-Prüfung abschließen, damit der
+        // aktuelle VIX mit dem jüngsten freigegebenen ACWI-Wert berechnet wird.
+        if (window.marktkompassAcwiReady) {
+            await window.marktkompassAcwiReady;
+        }
+
         const response = await fetch(
             `${WORKER}/intraday-candidate?t=${Date.now()}`,
             { cache: "no-store" }
@@ -18,20 +24,39 @@ async function checkIntradayVix() {
             throw new Error(candidate?.error || `Abfrage fehlgeschlagen (${response.status}).`);
         }
 
+        if (candidate?.version !== "intraday-vix-candidate-v1") {
+            throw new Error("Unerwartetes Format der Intraday-VIX-Antwort.");
+        }
+
+        if (candidate.available !== true) {
+            if (candidate.regularRefreshRequired === true) {
+                const refresh = await fetch(`${WORKER}/intraday-approve`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        version: "intraday-vix-approval-v1",
+                        mode: "regular-refresh"
+                    })
+                });
+                const refreshResult = await refresh.json().catch(() => null);
+                if (!refresh.ok || refreshResult?.calculationStarted !== true) {
+                    throw new Error(refreshResult?.error || "Der aktuelle reguläre Datenstand konnte nicht neu berechnet werden.");
+                }
+                if (status) status.textContent = "Regulärer ACWI-/VIX-Schlusskurs vorhanden. Aktuelle Berechnung wurde angestoßen.";
+            } else if (status) {
+                status.textContent = candidate?.message || "Der reguläre Datenstand ist bereits aktuell.";
+            }
+            return;
+        }
+
         if (
-            candidate?.version !== "intraday-vix-candidate-v1" ||
-            candidate.available !== true ||
             !Number.isFinite(Number(candidate.vix)) ||
             Number(candidate.vix) <= 0 ||
             !candidate.timestamp ||
             !candidate.acwiDate ||
             !candidate.id
         ) {
-            if (status) {
-                status.textContent = candidate?.message ||
-                    "Derzeit liegt kein neuer Intraday-VIX-Wert vor. Der bisherige Marktstatus bleibt unverändert.";
-            }
-            return;
+            throw new Error("Der Intraday-VIX-Kandidat enthält unvollständige Daten.");
         }
 
         // Der Kandidat wird nach erfolgreicher technischer Prüfung automatisch gespeichert.
@@ -54,9 +79,13 @@ async function checkIntradayVix() {
         }
 
         if (status) {
-            status.textContent = result.duplicate
-                ? "Dieser Intraday-VIX-Messpunkt ist bereits gespeichert."
-                : `Intraday-VIX ${Number(candidate.vix).toFixed(2)} Punkte automatisch gespeichert. Vorläufige V25.1-Berechnung angestoßen.`;
+            if (result.calculationStarted === false) {
+                status.textContent = "Der aktuellste Intraday-VIX-Wert und der ACWI-Datenstand sind bereits berechnet.";
+            } else if (result.duplicate) {
+                status.textContent = `Intraday-VIX ${Number(candidate.vix).toFixed(2)} Punkte mit dem neuesten ACWI-Wert vorläufig neu berechnet. Kein zusätzlicher historischer Messpunkt gespeichert.`;
+            } else {
+                status.textContent = `Intraday-VIX ${Number(candidate.vix).toFixed(2)} Punkte gespeichert. Vorläufige V25.1-Berechnung angestoßen.`;
+            }
         }
     } catch (error) {
         console.error("Intraday-VIX:", error);
