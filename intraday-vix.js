@@ -1,3 +1,5 @@
+import { getTurnstileToken } from "./turnstile-client.js";
+
 const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
 const button = document.getElementById("intraday-vix-check-button");
 const status = document.getElementById("intraday-vix-status");
@@ -35,7 +37,8 @@ async function checkIntradayVix() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         version: "intraday-vix-approval-v1",
-                        mode: "regular-refresh"
+                        mode: "regular-refresh",
+                        turnstileToken: await getTurnstileToken("intraday_approve")
                     })
                 });
                 const refreshResult = await refresh.json().catch(() => null);
@@ -80,7 +83,8 @@ async function checkIntradayVix() {
                 id: candidate.id,
                 vix: Number(candidate.vix),
                 timestamp: candidate.timestamp,
-                acwiDate: candidate.acwiDate
+                acwiDate: candidate.acwiDate,
+                turnstileToken: await getTurnstileToken("intraday_approve")
             })
         });
 
