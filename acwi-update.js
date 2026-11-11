@@ -1,4 +1,5 @@
 import { DataUpdater } from "./data-updater.js";
+import { waitForPublishedAcwi } from "./acwi-publication.js";
 
 const button = document.getElementById("acwi-update-button");
 const status = document.getElementById("acwi-update-status");
@@ -13,25 +14,38 @@ async function checkAndUpdateAcwi() {
 
         if (!result.newData || result.newData.length === 0) {
             if (status) status.textContent = "ACWI-Daten sind aktuell. Keine neuen Handelstage vorhanden.";
+            window.dispatchEvent(new Event("marktkompass:acwi-ready"));
             return true;
         }
 
         const first = result.newData[0].date;
-        const last = result.newData[result.newData.length - 1].date;
+        const latest = result.newData[result.newData.length - 1];
+
+        if (status) {
+            status.textContent =
+                `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${latest.date}) serverseitig übernommen. Warte auf die Veröffentlichung des neuen Marktstands …`;
+        }
+
+        await waitForPublishedAcwi({
+            date: latest.date,
+            close: latest.close,
+            timeoutMs: 180000,
+            intervalMs: 5000
+        });
 
         if (status) {
             status.textContent = result.approval?.duplicate
-                ? (result.approval?.calculationStarted
-                    ? `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${last}) waren bereits gespeichert. Da die Veröffentlichung noch zurücklag, wurde die Berechnung erneut angestoßen.`
-                    : `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${last}) waren bereits gespeichert und veröffentlicht. Keine erneute Berechnung erforderlich.`)
-                : `ACWI-Daten automatisch übernommen: ${result.newData.length} neue Handelstage (${first} bis ${last}). V25.1-Berechnung angestoßen.`;
+                ? `ACWI-Daten ${result.newData.length} Handelstage (${first} bis ${latest.date}) waren bereits gespeichert. Der veröffentlichte Marktstand wurde erfolgreich abgeglichen.`
+                : `ACWI-Daten automatisch übernommen und veröffentlicht: ${result.newData.length} Handelstage (${first} bis ${latest.date}). V25.1 ist aktualisiert.`;
         }
+
+        window.dispatchEvent(new Event("marktkompass:acwi-ready"));
         return true;
     } catch (error) {
         console.error("ACWI-Aktualisierung:", error);
         if (status) {
             status.textContent =
-                "Automatische ACWI-Prüfung fehlgeschlagen. Der bisherige Marktstatus bleibt unverändert.";
+                "ACWI-Prüfung oder Veröffentlichung noch nicht abgeschlossen. Die Intraday-Prüfung bleibt bis zum erfolgreichen Abgleich ausgesetzt.";
         }
         return false;
     } finally {
@@ -39,10 +53,16 @@ async function checkAndUpdateAcwi() {
     }
 }
 
-if (button) {
-    button.addEventListener("click", checkAndUpdateAcwi);
+function startAcwiCheck() {
+    const promise = checkAndUpdateAcwi();
+    window.marktkompassAcwiReady = promise;
+    return promise;
 }
 
-// Die Intraday-Prüfung wartet auf den Abschluss dieser ACWI-Prüfung.
-// So wird der jüngste freigegebene ACWI-Wert sicher zuerst übernommen.
-window.marktkompassAcwiReady = checkAndUpdateAcwi();
+if (button) {
+    button.addEventListener("click", startAcwiCheck);
+}
+
+// Die Intraday-Prüfung wartet auf diesen vollständigen Ablauf:
+// automatische Übernahme und anschließende Veröffentlichung in status.json.
+window.marktkompassAcwiReady = startAcwiCheck();
