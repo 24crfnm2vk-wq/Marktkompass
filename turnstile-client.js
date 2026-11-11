@@ -34,7 +34,6 @@ async function getWidget(action) {
 
     const container = document.createElement("div");
     container.id = `marktkompass-turnstile-${action}`;
-    container.setAttribute("aria-hidden", "true");
     container.className = "marktkompass-turnstile-widget";
     const host = document.getElementById("turnstile-widgets") || document.body;
     host.appendChild(container);
