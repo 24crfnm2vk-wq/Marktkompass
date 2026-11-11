@@ -9,7 +9,7 @@
  * - lädt aktuelle ACWI-Kandidatendaten über die Cloudflare-Bridge
  * - verwendet status.json als serverseitigen Synchronisationsstand
  * - erkennt dadurch auf PC und iPhone denselben Freigabestand
- * - übernimmt technisch geprüfte neue Daten automatisch
+ * - übernimmt neue Daten erst nach ausdrücklicher Bestätigung
  * - speichert übernommene neue Daten lokal
  * - verbindet Basisdaten + Erweiterungsdaten
  *
@@ -434,7 +434,8 @@ export class DataUpdater {
 
     async process(
         existingData,
-        externalData = null
+        externalData = null,
+        options = {}
     ) {
 
         const currentData =
@@ -475,11 +476,9 @@ export class DataUpdater {
             return {
 
                 updated: false,
-
+                pendingApproval: false,
                 newData: [],
-
                 data: currentData,
-
                 publishedDate:
                     publishedStatus.date
 
@@ -487,16 +486,35 @@ export class DataUpdater {
         }
 
 
-/*
-         * Serverseitige automatische Übernahme zuerst.
-         * Erst bei erfolgreichem Speichern wird lokal ergänzt.
+        /*
+         * Sicherheitsregel: Neue ACWI-Tage werden niemals
+         * ohne ausdrückliche Bestätigung übernommen.
+         * Ohne Bestätigungsfunktion bleibt der Kandidat
+         * unverändert und wird nicht an den Worker gesendet.
          */
+        const confirmApproval = options?.confirmApproval;
+        if (
+            typeof confirmApproval !== "function" ||
+            await confirmApproval(newData) !== true
+        ) {
+            return {
+                updated: false,
+                pendingApproval: true,
+                newData,
+                data: currentData,
+                publishedDate: publishedStatus.date
+            };
+        }
+
+
+        // Erst nach ausdrücklicher Bestätigung serverseitig freigeben.
         const approval =
             await this.approveWithBridge(
                 newData
             );
 
 
+        // Lokal erst ergänzen, nachdem der Worker die Freigabe bestätigt hat.
         const updatedData =
             this.acceptNewData(
                 currentData,
@@ -506,15 +524,12 @@ export class DataUpdater {
 
         return {
             updated: true,
+            pendingApproval: false,
             newData,
-
             data: updatedData,
-
             approval,
-
             publishedDate:
                 publishedStatus.date
-
         };
     }
 
