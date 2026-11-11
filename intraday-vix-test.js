@@ -1,5 +1,3 @@
-import { DataUpdater } from "./data-updater.js";
-
 const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
 const button = document.getElementById("start-test");
 const resultBox = document.getElementById("result");
@@ -53,14 +51,63 @@ async function startTest() {
     setResult("Test läuft …");
 
     try {
-        log("1. ACWI-Datenprüfung wird abgeschlossen.");
-        const updater = new DataUpdater();
-        const acwi = await updater.process([]);
-        log(
-            acwi.newData?.length
-                ? `ACWI-Erweiterung freigegeben: ${acwi.newData.length} neue Handelstage bis ${acwi.newData.at(-1).date}.`
-                : `Keine neuen ACWI-Handelstage. Veröffentlichter Datenstand: ${acwi.publishedDate}.`
-        );
+        log("1. ACWI-Kandidaten und veröffentlichter Datenstand werden geprüft.");
+        const [acwiCandidate, publishedStatus] = await Promise.all([
+            getJson(`${WORKER}/candidate?t=${Date.now()}`),
+            getJson(`./status.json?ts=${Date.now()}`)
+        ]);
+
+        if (
+            acwiCandidate.version !== "acwi-candidate-v1" ||
+            !Array.isArray(acwiCandidate.data)
+        ) {
+            throw new Error("Die ACWI-Kandidatenantwort ist ungültig.");
+        }
+
+        let previousDate = null;
+        for (const row of acwiCandidate.data) {
+            const close = Number(row?.close);
+            if (
+                !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(row?.date || "")) ||
+                !Number.isFinite(close) ||
+                close <= 0 ||
+                (previousDate !== null && row.date <= previousDate)
+            ) {
+                throw new Error("Die ACWI-Kandidaten enthalten ungültige oder unsortierte Datensätze.");
+            }
+            previousDate = row.date;
+        }
+
+        const newAcwiData = acwiCandidate.data.filter(row => row.date > publishedStatus.date);
+        let latestAcwiDate = publishedStatus.date;
+        let latestAcwiClose = Number(publishedStatus.acwi);
+
+        if (newAcwiData.length > 0) {
+            const approval = await getJson(`${WORKER}/approve`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    version: "acwi-approval-v1",
+                    data: newAcwiData
+                })
+            });
+
+            latestAcwiDate = newAcwiData.at(-1).date;
+            latestAcwiClose = Number(newAcwiData.at(-1).close);
+            log(
+                `ACWI-Erweiterung serverseitig übernommen: ${approval.count} Handelstage bis ${latestAcwiDate}.`
+            );
+
+            await waitForStatus(
+                status =>
+                    status.date === latestAcwiDate &&
+                    sameNumber(status.acwi, latestAcwiClose),
+                "Veröffentlichung des neuesten ACWI-Datenstands"
+            );
+            log("Neuer ACWI-Datenstand ist veröffentlicht.", "ok");
+        } else {
+            log(`Keine neuen ACWI-Handelstage. Veröffentlichter Datenstand: ${latestAcwiDate}.`);
+        }
 
         log("2. Intraday-VIX und regulärer Schlusskurs werden geprüft.");
         const candidate = await getJson(`${WORKER}/intraday-candidate?t=${Date.now()}`);
