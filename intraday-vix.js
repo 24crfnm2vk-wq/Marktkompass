@@ -12,7 +12,10 @@ async function checkIntradayVix() {
         // Erst die automatische ACWI-Prüfung abschließen, damit der
         // aktuelle VIX mit dem jüngsten freigegebenen ACWI-Wert berechnet wird.
         if (window.marktkompassAcwiReady) {
-            await window.marktkompassAcwiReady;
+            const acwiReady = await window.marktkompassAcwiReady;
+            if (acwiReady === false) {
+                throw new Error("Die automatische ACWI-Prüfung war nicht erfolgreich. Intraday wird bis zum nächsten erfolgreichen ACWI-Abgleich ausgesetzt.");
+            }
         }
 
         const response = await fetch(
