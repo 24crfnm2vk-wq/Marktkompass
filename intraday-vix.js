@@ -3,8 +3,11 @@ import { getTurnstileToken } from "./turnstile-client.js";
 const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
 const button = document.getElementById("intraday-vix-check-button");
 const status = document.getElementById("intraday-vix-status");
+let checkInProgress = false;
 
 async function checkIntradayVix() {
+    if (checkInProgress) return;
+    checkInProgress = true;
     if (button) button.disabled = true;
     if (status) status.textContent = "Prüfe den aktuellsten verfügbaren VIX-Wert …";
 
@@ -12,7 +15,31 @@ async function checkIntradayVix() {
         // Erst die automatische ACWI-Prüfung abschließen, damit der
         // aktuelle VIX mit dem jüngsten freigegebenen ACWI-Wert berechnet wird.
         if (window.marktkompassAcwiReady) {
-            await window.marktkompassAcwiReady;
+            const acwiResult = await window.marktkompassAcwiReady;
+
+            if (acwiResult?.pendingApproval) {
+                if (status) {
+                    status.textContent =
+                        "Neue ACWI-Handelstage warten auf deine Freigabe. Der Intraday-VIX wird bis zur Entscheidung nicht aktualisiert.";
+                }
+                return;
+            }
+
+            if (acwiResult?.publicationPending) {
+                if (status) {
+                    status.textContent =
+                        "Die freigegebenen ACWI-Daten sind noch nicht veröffentlicht. Die Intraday-Prüfung wartet bis dahin.";
+                }
+                return;
+            }
+
+            if (acwiResult?.error) {
+                if (status) {
+                    status.textContent =
+                        "Die ACWI-Prüfung war nicht erfolgreich. Der Intraday-VIX bleibt bis zu einer erfolgreichen Prüfung unverändert.";
+                }
+                return;
+            }
         }
 
         const response = await fetch(
@@ -116,6 +143,7 @@ async function checkIntradayVix() {
                 "Der bisherige Marktstatus bleibt unverändert.";
         }
     } finally {
+        checkInProgress = false;
         if (button) button.disabled = false;
     }
 }
@@ -123,6 +151,9 @@ async function checkIntradayVix() {
 if (button) {
     button.addEventListener("click", checkIntradayVix);
 }
+
+// Wird nach einer späteren ACWI-Freigabe und bestätigter Veröffentlichung ausgelöst.
+window.addEventListener("marktkompass:acwi-published", checkIntradayVix);
 
 // Automatische Prüfung beim Laden; erneute Prüfung über den vorhandenen Button möglich.
 checkIntradayVix();
