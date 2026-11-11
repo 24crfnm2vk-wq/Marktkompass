@@ -3,20 +3,27 @@ import { getTurnstileToken } from "./turnstile-client.js";
 const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
 const button = document.getElementById("intraday-vix-check-button");
 const status = document.getElementById("intraday-vix-status");
+let checkInProgress = false;
 
 async function checkIntradayVix() {
+    if (checkInProgress) return;
+    checkInProgress = true;
     if (button) button.disabled = true;
     if (status) status.textContent = "Prüfe den aktuellsten verfügbaren VIX-Wert …";
 
     try {
         // Erst die automatische ACWI-Prüfung abschließen, damit der
         // aktuelle VIX mit dem jüngsten freigegebenen ACWI-Wert berechnet wird.
-        if (window.marktkompassAcwiReady) {
-            const acwiReady = await window.marktkompassAcwiReady;
-            if (acwiReady === false) {
-                throw new Error("Die automatische ACWI-Prüfung war nicht erfolgreich. Intraday wird bis zum nächsten erfolgreichen ACWI-Abgleich ausgesetzt.");
+        let currentAcwiCheck;
+        do {
+            currentAcwiCheck = window.marktkompassAcwiReady;
+            if (currentAcwiCheck) {
+                const acwiReady = await currentAcwiCheck;
+                if (acwiReady === false) {
+                    throw new Error("Die automatische ACWI-Prüfung oder Veröffentlichung war nicht erfolgreich. Intraday wird bis zum nächsten erfolgreichen ACWI-Abgleich ausgesetzt.");
+                }
             }
-        }
+        } while (currentAcwiCheck !== window.marktkompassAcwiReady);
 
         const response = await fetch(
             `${WORKER}/intraday-candidate?t=${Date.now()}`,
@@ -119,6 +126,7 @@ async function checkIntradayVix() {
                 "Der bisherige Marktstatus bleibt unverändert.";
         }
     } finally {
+        checkInProgress = false;
         if (button) button.disabled = false;
     }
 }
@@ -126,6 +134,9 @@ async function checkIntradayVix() {
 if (button) {
     button.addEventListener("click", checkIntradayVix);
 }
+
+// Nach einer späteren manuellen ACWI-Aktualisierung die Intraday-Prüfung fortsetzen.
+window.addEventListener("marktkompass:acwi-ready", checkIntradayVix);
 
 // Automatische Prüfung beim Laden; erneute Prüfung über den vorhandenen Button möglich.
 checkIntradayVix();
