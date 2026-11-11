@@ -41,5 +41,6 @@ if (button) {
     button.addEventListener("click", checkAndUpdateAcwi);
 }
 
-// Automatische Prüfung beim Laden der Marktkompass-Seite.
-checkAndUpdateAcwi();
+// Die Intraday-Prüfung wartet auf den Abschluss dieser ACWI-Prüfung.
+// So wird der jüngste freigegebene ACWI-Wert sicher zuerst übernommen.
+window.marktkompassAcwiReady = checkAndUpdateAcwi();
