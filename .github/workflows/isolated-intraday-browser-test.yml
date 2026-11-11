@@ -58,6 +58,12 @@ jobs:
 
           const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
           const browser = await chromium.launch({ headless: true });
+          const workerCors = {
+            "Access-Control-Allow-Origin": "http://127.0.0.1:8000",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          };
 
           async function runScenario(name, candidate, expectedResult, makeStatus, expectedLog) {
             const context = await browser.newContext();
@@ -87,14 +93,25 @@ jobs:
             await page.route(`${WORKER}/candidate*`, route => route.fulfill({
               status: 200,
               contentType: "application/json",
+              headers: workerCors,
               body: JSON.stringify({ version: "acwi-candidate-v1", data: [] })
             }));
 
             await page.route(`${WORKER}/intraday-candidate*`, route => route.fulfill({
               status: 200,
               contentType: "application/json",
+              headers: workerCors,
               body: JSON.stringify(candidate)
             }));
+
+            // CORS-Preflight für die lokale Browser-Testseite simulieren.
+            // Für normale Requests wird an die spezifischen Worker-Routen weitergereicht.
+            await page.route(`${WORKER}/**`, async route => {
+              if (route.request().method() === "OPTIONS") {
+                return route.fulfill({ status: 204, headers: workerCors, body: "" });
+              }
+              return route.fallback();
+            });
 
             await page.route(`${WORKER}/intraday-approve*`, async route => {
               const body = route.request().postDataJSON();
@@ -102,6 +119,7 @@ jobs:
               return route.fulfill({
                 status: 200,
                 contentType: "application/json",
+                headers: workerCors,
                 body: JSON.stringify({
                   version: "intraday-vix-approval-v1",
                   accepted: true,
