@@ -1,0 +1,194 @@
+name: Marktkompass – isolierter Intraday-Browser-Test
+
+on:
+  push:
+    branches:
+      - feature/intraday-vix-provisional
+    paths:
+      - intraday-vix-test.html
+      - intraday-vix-test.js
+      - intraday-vix.js
+      - acwi-update.js
+      - acwi-publication.js
+      - turnstile-client.js
+      - index.html
+      - .github/workflows/isolated-intraday-browser-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-test:
+    name: Intraday-Testseite mit isoliertem Worker prüfen
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Entwicklungszweig auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Chromium und Playwright installieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/marktkompass-playwright"
+          cd "$RUNNER_TEMP/marktkompass-playwright"
+          npm init -y
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Lokalen Webserver starten
+        shell: bash
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE" > "$RUNNER_TEMP/marktkompass-http.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/marktkompass-http.pid"
+          sleep 2
+
+      - name: Intraday- und regulären Vorrangpfad im Browser prüfen
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/marktkompass-playwright"
+          cat > intraday-browser-test.mjs <<'NODE'
+          import { chromium } from "playwright";
+
+          const WORKER = "https://bitter-mountain-11f4.24crfnm2vk.workers.dev";
+          const browser = await chromium.launch({ headless: true });
+
+          async function runScenario(name, candidate, expectedResult, makeStatus, expectedLog) {
+            const context = await browser.newContext();
+            const page = await context.newPage();
+            const pageErrors = [];
+            let status = {
+              date: "2026-11-09",
+              acwi: 1108.961379,
+              vix: 19.92,
+              isIntraday: false
+            };
+
+            page.on("pageerror", error => pageErrors.push(error.message));
+            await page.route("https://challenges.cloudflare.com/**", route => route.abort());
+            await page.route("**/turnstile-client.js", route => route.fulfill({
+              status: 200,
+              contentType: "application/javascript",
+              body: "export async function getTurnstileToken(action) { return 'isolated-test-' + action; }"
+            }));
+
+            await page.route("**/status.json*", route => route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify(status)
+            }));
+
+            await page.route(`${WORKER}/candidate*`, route => route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify({ version: "acwi-candidate-v1", data: [] })
+            }));
+
+            await page.route(`${WORKER}/intraday-candidate*`, route => route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify(candidate)
+            }));
+
+            await page.route(`${WORKER}/intraday-approve*`, async route => {
+              const body = route.request().postDataJSON();
+              status = makeStatus(body);
+              return route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify({
+                  version: "intraday-vix-approval-v1",
+                  accepted: true,
+                  duplicate: false,
+                  calculationStarted: true
+                })
+              });
+            });
+
+            await page.goto("http://127.0.0.1:8000/intraday-vix-test.html", {
+              waitUntil: "domcontentloaded"
+            });
+            await page.getByRole("button", { name: "Kontrollierten Test starten" }).click();
+            await page.locator("#result").waitFor({ state: "visible" });
+            await page.waitForFunction(
+              expected => document.getElementById("result")?.textContent === expected,
+              expectedResult,
+              { timeout: 20000 }
+            );
+
+            const resultText = await page.locator("#result").textContent();
+            const logText = await page.locator("#log").innerText();
+
+            if (!resultText.includes(expectedResult) || !logText.includes(expectedLog)) {
+              throw new Error(name + ": erwartete Browsermeldung fehlt.");
+            }
+            if (pageErrors.length) {
+              throw new Error(name + ": Browserfehler: " + pageErrors.join(" | "));
+            }
+
+            console.log(name + ": BESTANDEN");
+            console.log(logText);
+            await context.close();
+          }
+
+          const intradayCandidate = {
+            version: "intraday-vix-candidate-v1",
+            available: true,
+            alreadyStored: false,
+            alreadyPublished: false,
+            cooldownActive: false,
+            id: "isolated-intraday-id",
+            vix: 17.78,
+            timestamp: "2026-11-11T16:03:20.000Z",
+            acwiDate: "2026-11-09",
+            acwiClose: 1108.961379
+          };
+
+          await runScenario(
+            "Intraday-Pfad",
+            intradayCandidate,
+            "Test erfolgreich: Intraday-VIX und ACWI wurden gemeinsam veröffentlicht.",
+            () => ({
+              date: "2026-11-09",
+              acwi: 1108.961379,
+              vix: 17.78,
+              isIntraday: true,
+              intradayTimestamp: "2026-11-11T16:03:20.000Z"
+            }),
+            "Intraday-Status wurde mit exakt diesem ACWI- und VIX-Datenstand veröffentlicht."
+          );
+
+          const regularCandidate = {
+            version: "intraday-vix-candidate-v1",
+            available: false,
+            publicationPending: false,
+            regularRefreshRequired: true,
+            regularDate: "2026-11-09",
+            regularVix: 19.92,
+            acwiClose: 1108.961379,
+            message: "Regulärer Schlusskurs hat Vorrang."
+          };
+
+          await runScenario(
+            "Regulärer Vorrang",
+            regularCandidate,
+            "Test erfolgreich: regulärer Schlusskurs hat Vorrang.",
+            () => ({
+              date: "2026-11-09",
+              acwi: 1108.961379,
+              vix: 19.92,
+              isIntraday: false
+            }),
+            "Regulärer Status wurde erfolgreich veröffentlicht."
+          );
+
+          await browser.close();
+          NODE
+
+          node intraday-browser-test.mjs
