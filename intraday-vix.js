@@ -39,10 +39,14 @@ async function checkIntradayVix() {
                     })
                 });
                 const refreshResult = await refresh.json().catch(() => null);
-                if (!refresh.ok || refreshResult?.calculationStarted !== true) {
-                    throw new Error(refreshResult?.error || "Der aktuelle reguläre Datenstand konnte nicht neu berechnet werden.");
+                if (!refresh.ok || typeof refreshResult?.calculationStarted !== "boolean") {
+                    throw new Error(refreshResult?.error || "Der aktuelle reguläre Datenstand konnte nicht geprüft werden.");
                 }
-                if (status) status.textContent = "Regulärer ACWI-/VIX-Schlusskurs vorhanden. Aktuelle Berechnung wurde angestoßen.";
+                if (status) {
+                    status.textContent = refreshResult.calculationStarted
+                        ? "Regulärer ACWI-/VIX-Schlusskurs vorhanden. Aktuelle Berechnung wurde angestoßen."
+                        : "Der reguläre ACWI-/VIX-Datenstand ist bereits aktuell.";
+                }
             } else if (status) {
                 status.textContent = candidate?.message || "Der reguläre Datenstand ist bereits aktuell.";
             }
