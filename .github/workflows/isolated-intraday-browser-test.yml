@@ -54,7 +54,7 @@ jobs:
           time npm install --no-save --prefer-offline playwright@1.55.0
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
             echo "Kein vollständiger Chromium-Cache: Browser und Systemabhängigkeiten einmalig bereitstellen."
-            time npx playwright install --with-deps chromium
+            time npx playwright install chromium
           else
             echo "Playwright und Chromium aus Cache wiederhergestellt; keine Neuinstallation."
             npx playwright --version
