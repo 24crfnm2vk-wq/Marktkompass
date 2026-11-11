@@ -95,6 +95,20 @@ async function startTest() {
         let latestAcwiClose = Number(publishedStatus.acwi);
 
         if (newAcwiData.length > 0) {
+            const firstDate = newAcwiData[0].date;
+            const lastDate = newAcwiData.at(-1).date;
+            const confirmed = window.confirm(
+                `Es wurden ${newAcwiData.length} neue ACWI-Handelstage gefunden.\\n\\n` +
+                `Zeitraum: ${firstDate} bis ${lastDate}\\n\\n` +
+                "Sollen diese Daten freigegeben und anschließend neu berechnet werden?"
+            );
+
+            if (!confirmed) {
+                log("ACWI-Freigabe abgelehnt. Es wurden keine neuen Daten übernommen; der Intraday-Test wird beendet.", "warn");
+                setResult("Test abgebrochen – der bisherige freigegebene ACWI-Datenstand bleibt unverändert.", "warn");
+                return;
+            }
+
             const approval = await postJson(`${WORKER}/approve`, {
                 version: "acwi-approval-v1",
                 data: newAcwiData
