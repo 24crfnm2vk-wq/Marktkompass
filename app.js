@@ -21,12 +21,24 @@ const REFERENCE_STATES = new Set(['STABILISIERUNG','ERSTE VERBESSERUNG','STRUKTU
 function renderVixChart(status) {
   const regular = Array.isArray(status.regularVixHistory)
     ? status.regularVixHistory
-        .map(item => ({ time: Date.parse(String(item.date) + "T23:59:59Z"), vix: Number(item.vix), kind: "close" }))
+        .map(item => ({
+          time: Date.parse(String(item.date) + "T23:59:59Z"),
+          labelDate: String(item.date),
+          vix: Number(item.vix),
+          kind: "close"
+        }))
         .filter(item => Number.isFinite(item.time) && Number.isFinite(item.vix))
     : [];
   const intraday = Array.isArray(status.intradayVixMeasurements)
     ? status.intradayVixMeasurements
-        .map(item => ({ time: Date.parse(item.timestamp), vix: Number(item.vix), kind: "intraday" }))
+        .map(item => ({
+          time: Date.parse(item.timestamp),
+          labelDate: Number.isFinite(Date.parse(item.timestamp))
+            ? new Date(item.timestamp).toLocaleDateString("de-DE")
+            : "",
+          vix: Number(item.vix),
+          kind: "intraday"
+        }))
         .filter(item => Number.isFinite(item.time) && Number.isFinite(item.vix))
     : [];
   const points = [...regular, ...intraday].sort((a, b) => a.time - b.time);
@@ -59,7 +71,10 @@ function renderVixChart(status) {
       '" stroke="#e5e5e5" stroke-width="1" /><text x="' + (left - 8) + '" y="' + (py + 4).toFixed(1) +
       '" text-anchor="end" font-size="11" fill="#555">' + value.toFixed(1) + '</text>';
   }).join("");
-  const firstLabel = new Date(minTime).toLocaleDateString("de-DE"), lastLabel = new Date(maxTime).toLocaleDateString("de-DE");
+  // Reguläre Schlusskurse behalten ihr originales Börsen-Handelsdatum.
+  // Die UTC-Zeit 23:59:59 darf in deutscher Ortszeit nicht zum Folgetag führen.
+  const firstLabel = points[0].labelDate;
+  const lastLabel = points[points.length - 1].labelDate;
   return '<div class="card"><b>VIX-Verlauf</b><svg class="vix-chart" viewBox="0 0 ' + width + ' ' + height +
     '" role="img" aria-label="VIX-Verlauf mit regulären Schlusskursen und bestätigten Intraday-Messpunkten">' +
     yTicks + segments + markers +
