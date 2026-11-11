@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Marktkompass – kontrollierter Intraday-Test</title>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; }
+    body { margin: 0; padding: 24px; background: #f4f6f8; color: #18212b; }
+    main { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #d7dde4; border-radius: 12px; padding: 24px; }
+    h1 { margin-top: 0; font-size: 1.45rem; }
+    p { line-height: 1.5; }
+    .notice { padding: 12px 14px; background: #eef3f8; border-left: 4px solid #56718c; border-radius: 4px; }
+    button { margin: 12px 0 18px; padding: 12px 18px; border: 0; border-radius: 6px; background: #1f4e79; color: white; font-size: 1rem; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #result { min-height: 36px; padding: 12px; background: #f7f8fa; border: 1px solid #d7dde4; border-radius: 6px; }
+    #log { padding-left: 20px; line-height: 1.55; overflow-wrap: anywhere; }
+    .ok { color: #17633b; }
+    .warn { color: #805b12; }
+    .error { color: #9b2525; }
+    small { color: #596575; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Marktkompass – kontrollierter Intraday-Test</h1>
+    <p class="notice">
+      Diese separate Prüfseite dient ausschließlich der technischen Abnahme.
+      Sie verwendet die aktuellen veröffentlichten ACWI-Daten und den aktuellen
+      VIX-Datenstand. Es werden keine Kauf- oder Verkaufsaktionen ausgelöst.
+    </p>
+    <p>
+      Beim Start wird zuerst die ACWI-Datenprüfung abgeschlossen. Danach wird
+      geprüft, ob ein Intraday-VIX-Wert benötigt wird oder ein gemeinsamer
+      regulärer Schlusskurs Vorrang hat.
+    </p>
+    <button id="start-test" type="button">Kontrollierten Test starten</button>
+    <div id="result" role="status" aria-live="polite">Noch kein Test gestartet.</div>
+    <ol id="log"></ol>
+    <p><small>Diese Seite ist nicht in die normale Marktkompass-Navigation eingebunden.</small></p>
+  </main>
+  <script type="module" src="./intraday-vix-test.js"></script>
+</body>
+</html>
