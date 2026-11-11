@@ -15,6 +15,8 @@ on:
       - .github/workflows/isolated-intraday-browser-test.yml
   workflow_dispatch:
 
+# Cache-Folgelauf-Pruefung: Browser-Cache muss im naechsten Lauf wiederhergestellt werden.
+
 permissions:
   contents: read
 
