@@ -1,12 +1,12 @@
 {
   "version": "V25.1.0",
-  "date": "2026-11-10",
+  "date": "2026-11-11",
   "trafficLight": "GRÜN",
   "state": "NORMAL",
-  "acwi": 1108.743055,
-  "sma200": 1095.681003785,
-  "distance": 1.192139972298268,
-  "vix": 19.46,
-  "vixChange": -2.309236947791169,
+  "acwi": 1121.154082,
+  "sma200": 1096.031374195,
+  "distance": 2.292152250062362,
+  "vix": 17.49,
+  "vixChange": -10.123329907502582,
   "historicalReference": null
 }
