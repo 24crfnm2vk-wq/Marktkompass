@@ -1,0 +1,29 @@
+name: Validate Marktkompass development branch
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: JavaScript syntax checks
+        run: |
+          node --check app.js
+          node --input-type=module --check < data-updater.js
+          node --input-type=module --check < acwi-update.js
+      - name: ACWI automatic adoption tests
+        run: node --test tests/acwi-automatic-flow.test.mjs
+      - name: Historical reference display tests
+        run: node --test tests/historical-reference.test.mjs
