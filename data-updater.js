@@ -426,37 +426,6 @@ export class DataUpdater {
     }
 
 
-    async askForAcceptance(newData) {
-
-        if (
-            !newData ||
-            newData.length === 0
-        ) {
-
-            return false;
-        }
-
-
-        const firstDate =
-            newData[0].date;
-
-
-        const lastDate =
-            newData[newData.length - 1].date;
-
-
-        const message =
-            `${newData.length} neue ACWI-Handelstage gefunden.\n\n` +
-            `Von ${firstDate} bis ${lastDate}.\n\n` +
-            `Sollen diese Daten in den Marktkompass übernommen werden?`;
-
-
-        return window.confirm(
-            message
-        );
-    }
-
-
     async process(
         existingData,
         externalData = null
@@ -512,39 +481,17 @@ export class DataUpdater {
         }
 
 
-        const accepted =
-            await this.askForAcceptance(
-                newData
-            );
-
-
-        if (!accepted) {
-
-            return {
-
-                updated: false,
-
-                cancelled: true,
-
-                newData,
-
-                data: currentData,
-
-                publishedDate:
-                    publishedStatus.date
-
-            };
+        /*
+         * Verbindliche automatische ACWI-Übernahme:
+         * Nach lokaler Plausibilitätsprüfung erfolgt die
+         * serverseitige Validierung und Übernahme über /approve.
+         * Erst nach erfolgreicher Serverantwort wird lokal gespeichert.
+         */
+        if (!this.validateData(newData)) {
+            throw new Error("Die neuen ACWI-Daten sind nicht plausibel.");
         }
 
-
-        /*
-         * Serverseitige Freigabe zuerst.
-         * Erst bei erfolgreicher Freigabe wird
-         * lokal gespeichert.
-         */
-        await this.approveWithBridge(
-            newData
-        );
+        await this.approveWithBridge(newData);
 
 
         const updatedData =
