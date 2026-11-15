@@ -142,6 +142,7 @@ function renderMarketTrendChart(history, candidate, regularVix, statusDate) {
 }
 
 let trendDataCache = { history: null, candidate: null };
+let lastTrendStatusDate = null;
 
 async function refreshTrendData(){
   trendDataCache = await loadTrendData();
@@ -154,6 +155,12 @@ async function loadStatus(){
     const r=await fetch('status.json?ts='+Date.now(),{cache:'no-store'});
     if(!r.ok) throw new Error('Statusdatei nicht verfügbar.');
     const s=await r.json();
+    if (lastTrendStatusDate !== null && s.date !== lastTrendStatusDate) {
+      // Ein neuer regulärer ACWI-Schlusskurs ersetzt den bisherigen Intraday-Bezug.
+      // Verlauf und Kandidat sofort neu laden, nicht erst beim nächsten 15-Minuten-Zyklus.
+      trendDataCache = await loadTrendData();
+    }
+    lastTrendStatusDate = s.date;
     const trendData=trendDataCache;
     const trendHtml=renderMarketTrendChart(trendData.history,trendData.candidate,s.vix,s.date);
     const phase=PHASES[s.state]||{color:'gray',label:s.trafficLight||'UNBEKANNT',title:`Status – ${s.state||'unbekannt'}`,description:'Für diesen Zustand ist keine spezielle Darstellung definiert.'};
