@@ -132,10 +132,20 @@ async function loadStatus(){
     const r=await fetch('status.json?ts='+Date.now(),{cache:'no-store'});
     if(!r.ok) throw new Error('Statusdatei nicht verfügbar.');
     const s=await r.json();
+    const trendData=await loadTrendData();
+    const trendHtml=renderMarketTrendChart(trendData.history,trendData.candidate,s.vix,s.date);
     const phase=PHASES[s.state]||{color:'gray',label:s.trafficLight||'UNBEKANNT',title:`Status – ${s.state||'unbekannt'}`,description:'Für diesen Zustand ist keine spezielle Darstellung definiert.'};
     const showReference=REFERENCE_STATES.has(s.state);
     const formatPercent=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'–':`${Number(value)>0?'+':''}${Number(value).toFixed(2)} %`;
     const formatNumber=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'–':Number(value).toFixed(2);
+    const candidate=trendData.candidate;
+    const candidateTime=Date.parse(candidate?.timestamp);
+    const intradayValid=candidate?.available===true&&Number.isFinite(Number(candidate.vix))&&Number(candidate.vix)>0&&Number.isFinite(candidateTime)&&Number(s.vix)>0&&candidate.acwiDate===trendData.history?.latestDate&&candidate.acwiDate===s.date;
+    const intradayValue=intradayValid?Number(candidate.vix):null;
+    const intradayChange=intradayValid?((intradayValue/Number(s.vix))-1)*100:null;
+    const intradayHtml=intradayValid
+      ? '<div class="intraday-panel"><div class="intraday-heading">Ergänzende Intraday-Information</div><div class="intraday-row"><span>Intraday-VIX</span><strong>'+formatNumber(intradayValue)+' Punkte</strong></div><div class="intraday-row"><span>Abweichung zum letzten VIX-Schlusskurs</span><strong>'+formatPercent(intradayChange)+'</strong></div><div class="intraday-time">Anbieter-Zeitstempel: '+formatIntradayTime(candidate.timestamp)+'</div></div>'
+      : '<div class="intraday-panel intraday-unavailable"><div class="intraday-heading">Ergänzende Intraday-Information</div><div>Derzeit kein gültiger Intraday-Messpunkt verfügbar.</div></div>';
     let reference='';
     const h=s.historicalReference;
     if(showReference&&h&&h.found===true){
@@ -168,7 +178,8 @@ async function loadStatus(){
         <div class="row"><span class="label">Abstand zur SMA200:</span> <span${distanceStyle}>${distanceText}</span></div>
         <div class="row"><span class="label">VIX:</span> ${formatNumber(s.vix)} Punkte</div>
         <div class="row"><span class="label">VIX Tagesveränderung:</span> ${formatPercent(s.vixChange)}</div>
-      </div>${reference}`;
+        ${intradayHtml}
+      </div>${trendHtml}${reference}`;
   }catch(e){root.innerHTML='<div class="card error">Aktueller Marktstatus konnte nicht geladen werden.</div>';}
 }
 loadStatus();
