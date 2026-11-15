@@ -126,13 +126,20 @@ function renderMarketTrendChart(history, candidate, regularVix, statusDate) {
     '<small>ACWI und SMA200 verwenden dieselbe linke Skala. Der VIX verwendet eine eigene rechte Skala. Die senkrechten Markierungen gliedern die Zeitachse in 7-Tage-Abschnitte.</small></div>';
 }
 
+let trendDataCache = { history: null, candidate: null };
+
+async function refreshTrendData(){
+  trendDataCache = await loadTrendData();
+  await loadStatus();
+}
+
 async function loadStatus(){
   const root=document.getElementById('app');
   try{
     const r=await fetch('status.json?ts='+Date.now(),{cache:'no-store'});
     if(!r.ok) throw new Error('Statusdatei nicht verfügbar.');
     const s=await r.json();
-    const trendData=await loadTrendData();
+    const trendData=trendDataCache;
     const trendHtml=renderMarketTrendChart(trendData.history,trendData.candidate,s.vix,s.date);
     const phase=PHASES[s.state]||{color:'gray',label:s.trafficLight||'UNBEKANNT',title:`Status – ${s.state||'unbekannt'}`,description:'Für diesen Zustand ist keine spezielle Darstellung definiert.'};
     const showReference=REFERENCE_STATES.has(s.state);
@@ -182,7 +189,9 @@ async function loadStatus(){
       </div>${trendHtml}${reference}`;
   }catch(e){root.innerHTML='<div class="card error">Aktueller Marktstatus konnte nicht geladen werden.</div>';}
 }
+// Der Status wird alle 5 Sekunden aktualisiert. Die Worker-Abfrage für
+// Intraday/Verlauf erfolgt separat beim Öffnen und danach höchstens alle 15 Minuten.
 loadStatus();
-// Öffentliche Anzeige regelmäßig aktualisieren; Datenfreigabe bleibt in acwi-update.js.
-
+refreshTrendData();
 setInterval(loadStatus, 5000);
+setInterval(refreshTrendData, 15 * 60 * 1000);
