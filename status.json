@@ -1,22 +1,22 @@
 {
   "version": "V25.1.0",
-  "date": "2026-11-19",
+  "date": "2026-11-20",
   "trafficLight": "ROT",
-  "state": "STRESS",
-  "acwi": 1056.79718,
-  "sma200": 1097.3214549699994,
-  "distance": -3.6930176464204214,
-  "vix": 28.44,
-  "vixChange": 15.798045602605876,
+  "state": "STRESS EXTREM",
+  "acwi": 1021.908385,
+  "sma200": 1097.2947968949993,
+  "distance": -6.870205901670117,
+  "vix": 35.89,
+  "vixChange": 26.195499296765117,
   "historicalReference": {
     "found": true,
-    "date": "2022-02-15",
-    "stressStart": "2022-02-10",
-    "stressLevel": 7.486407360936844,
-    "acwiChangeSinceStart": -1.1702991835442167,
-    "distanceToSma200": -1.4449820638682505,
-    "vix": 25.7,
-    "startDate": "2022-02-10",
-    "endDate": "2022-12-01"
+    "date": "2014-10-15",
+    "stressStart": "2014-10-09",
+    "stressLevel": 39.925373134328346,
+    "acwiChangeSinceStart": -3.385583018033506,
+    "distanceToSma200": -5.380389529908451,
+    "vix": 26.25,
+    "startDate": "2014-10-09",
+    "endDate": "2014-10-31"
   }
 }
