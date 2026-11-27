@@ -1,22 +1,14 @@
 {
   "version": "V25.1.0",
-  "date": "2026-11-25",
-  "trafficLight": "ROT",
-  "state": "STRESS",
-  "acwi": 1049.716305,
-  "sma200": 1097.3418113899993,
-  "distance": -4.340079444313919,
-  "vix": 28.29,
-  "vixChange": 7.321699544764794,
+  "date": "2026-11-26",
+  "trafficLight": "GELB",
+  "state": "STABILISIERUNG",
+  "acwi": 1054.643403,
+  "sma200": 1097.337178904999,
+  "distance": -3.8906706822420714,
+  "vix": 26.8,
+  "vixChange": -5.266878755744074,
   "historicalReference": {
-    "found": true,
-    "date": "2014-10-20",
-    "stressStart": "2014-10-09",
-    "stressLevel": -1.0127931769722882,
-    "acwiChangeSinceStart": -1.7394722618053127,
-    "distanceToSma200": -3.7355140831400186,
-    "vix": 18.57,
-    "startDate": "2014-10-09",
-    "endDate": "2014-10-31"
+    "found": false
   }
 }
